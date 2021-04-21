@@ -6,56 +6,58 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-
-        URL url = ClassLoader.getSystemResource("book.txt");
+    private static List<String> readBook(String bookName) {
+        final URL url = ClassLoader.getSystemResource(bookName);
         System.out.println(url);
-        File file = new File(url.getFile());
-        String line;
-        int wc = 0;
-        Map<String, Integer> wordMap = new HashMap<>();
+        final File file = new File(url.getFile());
+        final List<String> lines = new ArrayList<>();
         try (
-                InputStream fileInputStream = new FileInputStream(file);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream))
+                final InputStream fileInputStream = new FileInputStream(file);
+                final BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream))
         ) {
-            while (true) {
-                line = reader.readLine();
-                if (line == null) {
-                    break;
-                }
+            String line;
+            while ((line = reader.readLine()) != null) {
                 line = line.replaceAll("[^a-zA-Z0-9]", " ").toLowerCase(Locale.ROOT).trim();
                 if (line.trim().length() > 0) {
-                    //System.out.println(line);
-                    //System.out.println(line);
-                    String[] words = line.split("\\s+");
-                    //Arrays.stream(words).forEach(System.out::println);
-                    wc += words.length;
-                    //System.out.println(wc);
-                    for (String word : words) {
-                        if (word.length() == 0) {
-                            System.out.println(line);
-                        }
-                        int countWord = wordMap.getOrDefault(word, 0);
-                        wordMap.put(word, countWord + 1);
-                    }
+                    lines.add(line);
                 }
-                //System.out.println(line);
             }
-            System.out.println(wordMap);
-            System.out.println("Word count: " + wc);
-            List<Map.Entry<String, Integer>> list = new ArrayList<>(wordMap.entrySet());
-            list.sort(new Comparator<Map.Entry<String, Integer>>() {
-                @Override
-                public int compare(Map.Entry o1, Map.Entry o2) {
-                    int v1 = (int)o1.getValue();
-                    int v2 = (int)o2.getValue();
-                    return Integer.compare(v2, v1);
-                }
-            });
-            System.out.println(list);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return lines;
+    }
+
+    private static Map<String, Integer> countWord(List<String> lines) {
+        final Map<String, Integer> wordMap = new HashMap<>();
+        for (String line : lines) {
+            String[] words = line.split("\\s+");
+            for (String word : words) {
+                int countWord = wordMap.getOrDefault(word, 0);
+                wordMap.put(word, countWord + 1);
+            }
+        }
+        return wordMap;
+    }
+
+    private static List<Map.Entry<String, Integer>> sortWordCount(Map<String, Integer> wordMap) {
+        List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(wordMap.entrySet());
+        sortedList.sort(new Comparator<Map.Entry<String, Integer>>() {
+            @Override
+            public int compare(Map.Entry o1, Map.Entry o2) {
+                int v1 = (int)o1.getValue();
+                int v2 = (int)o2.getValue();
+                return Integer.compare(v2, v1);
+            }
+        });
+        return sortedList;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(
+            sortWordCount(
+                    countWord(
+                            readBook("book.txt")))
+        );
     }
 }
