@@ -40,7 +40,7 @@ public class Main {
         return wordMap;
     }
 
-    private static List<Map.Entry<String, Integer>> sortWordCount(Map<String, Integer> wordMap) {
+    private static List<Map.Entry<String, Integer>> sortByWordCount(Map<String, Integer> wordMap) {
         List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(wordMap.entrySet());
         sortedList.sort(new Comparator<Map.Entry<String, Integer>>() {
             @Override
@@ -55,7 +55,7 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println(
-            sortWordCount(
+            sortByWordCount(
                     countWord(
                             readBook("book.txt")))
         );
