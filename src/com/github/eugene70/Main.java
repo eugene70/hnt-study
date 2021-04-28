@@ -1,63 +1,59 @@
 package com.github.eugene70;
 
-import java.io.*;
-import java.net.URL;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
 
     private static List<String> readBook(String bookName) {
-        final URL url = ClassLoader.getSystemResource(bookName);
-        System.out.println(url);
-        final File file = new File(url.getFile());
-        final List<String> lines = new ArrayList<>();
-        try (
-                final InputStream fileInputStream = new FileInputStream(file);
-                final BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream))
-        ) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.replaceAll("[^a-zA-Z0-9]", " ").toLowerCase(Locale.ROOT).trim();
-                if (line.trim().length() > 0) {
-                    lines.add(line);
-                }
-            }
-        } catch (IOException e) {
+        try {
+            final URI uri = ClassLoader.getSystemResource(bookName).toURI();
+            System.out.println(uri);
+            return Files.lines(Paths.get(uri))
+                    .collect(Collectors.toList());
+        } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
+            return Collections.emptyList();
         }
-        return lines;
     }
+
+    private static List<String> cleansing(List<String> lines) {
+        return lines.stream()
+                .map(line -> line.replaceAll("[^a-zA-Z0-9]", " ").toLowerCase(Locale.ROOT).trim())
+                .filter(line -> line.length() > 0)
+                .collect(Collectors.toList());
+    }
+
 
     private static Map<String, Integer> countWord(List<String> lines) {
         final Map<String, Integer> wordMap = new HashMap<>();
-        for (String line : lines) {
-            String[] words = line.split("\\s+");
-            for (String word : words) {
-                int countWord = wordMap.getOrDefault(word, 0);
-                wordMap.put(word, countWord + 1);
-            }
-        }
+        lines.stream()
+                .flatMap(line -> Arrays.stream(line.split("\\s+")))
+                .forEach(word -> {
+                    int countWord = wordMap.getOrDefault(word, 0);
+                    wordMap.put(word, countWord + 1);
+                });
         return wordMap;
     }
 
     private static List<Map.Entry<String, Integer>> sortByWordCount(Map<String, Integer> wordMap) {
-        List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(wordMap.entrySet());
-        sortedList.sort(new Comparator<Map.Entry<String, Integer>>() {
-            @Override
-            public int compare(Map.Entry o1, Map.Entry o2) {
-                int v1 = (int)o1.getValue();
-                int v2 = (int)o2.getValue();
-                return Integer.compare(v2, v1);
-            }
-        });
-        return sortedList;
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(wordMap.entrySet());
+        return entries.stream()
+                .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
+                .collect(Collectors.toList());
     }
 
     public static void main(String[] args) {
         System.out.println(
             sortByWordCount(
                     countWord(
-                            readBook("book.txt")))
+                            cleansing(
+                                readBook("book.txt"))))
         );
     }
 }
