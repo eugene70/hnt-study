@@ -7,53 +7,43 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.AbstractMap.*;
 
 public class Main {
 
-    private static List<String> readBook(String bookName) {
+    private static Stream<String> readBook(String bookName) {
         try {
             final URI uri = ClassLoader.getSystemResource(bookName).toURI();
-            System.out.println(uri);
-            return Files.lines(Paths.get(uri))
-                    .collect(Collectors.toList());
+            return Files.lines(Paths.get(uri));
         } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
-            return Collections.emptyList();
+            return Stream.empty();
         }
     }
 
-    private static List<String> cleansing(List<String> lines) {
-        return lines.stream()
-                .map(line -> line.replaceAll("[^a-zA-Z0-9]", " ").toLowerCase(Locale.ROOT).trim())
-                .filter(line -> line.length() > 0)
-                .collect(Collectors.toList());
-    }
-
-
-    private static Map<String, Integer> countWord(List<String> lines) {
-        final Map<String, Integer> wordMap = new HashMap<>();
-        lines.stream()
-                .flatMap(line -> Arrays.stream(line.split("\\s+")))
-                .forEach(word -> {
-                    int countWord = wordMap.getOrDefault(word, 0);
-                    wordMap.put(word, countWord + 1);
-                });
-        return wordMap;
-    }
-
-    private static List<Map.Entry<String, Integer>> sortByWordCount(Map<String, Integer> wordMap) {
-        List<Map.Entry<String, Integer>> entries = new ArrayList<>(wordMap.entrySet());
-        return entries.stream()
-                .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
-                .collect(Collectors.toList());
+    private static String[] splitBySpace(String line) {
+        return line.split("\\s+");
     }
 
     public static void main(String[] args) {
         System.out.println(
-            sortByWordCount(
-                    countWord(
-                            cleansing(
-                                readBook("book.txt"))))
+        readBook("book.txt")
+                //.parallel()
+                .map(x -> {System.out.println(Thread.currentThread().getName() + ": " + x); return x;})
+                .map(Refiner::cleansing)
+                .map(x -> {System.out.println(Thread.currentThread().getName() + ": " + x); return x;})
+                .filter(s -> !s.isEmpty())
+                .map(x -> {System.out.println(Thread.currentThread().getName() + ": " + x); return x;})
+                .flatMap(line -> Arrays.stream(splitBySpace(line)))
+                .map(x -> {System.out.println(Thread.currentThread().getName() + ": " + x); return x;})
+                .collect(Collectors.groupingBy(word -> word))
+                .entrySet()
+                .stream()
+                .map(e -> (Map.Entry<String, Integer>) new SimpleEntry(e.getKey(), e.getValue().size()))
+                .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
+                .collect(Collectors.toList())
         );
     }
 }
